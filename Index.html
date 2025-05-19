@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Quotes with Dark Mode & Effects</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400&display=swap');
+
+    :root {
+      --bg-light: #f0f0f0;
+      --text-light: #222;
+      --bg-dark: #111;
+      --text-dark: #eee;
+      --primary-color: #ff007f;
+      --primary-hover: #e60073;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 3rem;
+      background: var(--bg-dark);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      transition: background 0.3s ease, color 0.3s ease;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body.light-mode {
+      background: var(--bg-light);
+      color: var(--text-light);
+    }
+
+    #quote {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      max-width: 80%;
+      margin-bottom: 0.5rem;
+      user-select: none;
+      color: white;
+      text-shadow: 
+        0 0 10px rgba(255, 0, 127, 0.6),
+        0 0 15px rgba(255, 0, 127, 0.5),
+        0 0 20px rgba(255, 0, 127, 0.4);
+    }
+
+    #author {
+      font-style: italic;
+      font-size: 1.2rem;
+      user-select: none;
+      opacity: 1;
+      margin-top: -5px;
+      transition: opacity 0.3s ease;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+
+    button {
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: var(--primary-color);
+      color: white;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+    .button-container {
+  display: flex;
+  gap: 15px; /* More spacing between buttons */
+  margin-top: 2rem;
+}
+
+    button:focus {
+      outline: 2px solid var(--primary-hover);
+      outline-offset: 2px;
+    }
+
+    /* Smooth fade animation */
+    .fade-in {
+      animation: fadeIn 1.5s forwards;
+    }
+    .fade-out {
+      animation: fadeOut 1.5s forwards;
+    }
+
+   @keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+    /* Particle Canvas */
+    #particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="quote">Loading quote...</div>
+  <div id="author"></div>
+  <div class="button-container">
+    <button id="newQuoteBtn">New Quote</button>
+    <button id="shareBtn">🐦 Tweet</button>
+    <button id="modeToggleBtn">Toggle Light/Dark</button>
+  </div>
+  <canvas id="particle-canvas"></canvas>
+
+  <script>
+    // Particle Background - Mouse Movement Effect
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let mouseX = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); // Initial resize on page load
+
+
+   window.addEventListener('mousemove', (event) => {
+  mouseX = (event.clientX / window.innerWidth - 0.5) * 15;
+
+  // Dynamically change background color
+  const hue = (event.clientX / window.innerWidth) * 360;
+  const lightness = (event.clientY / window.innerHeight) * 20 + 10;
+  document.body.style.background = `hsl(${hue}, 20%, ${lightness}%)`;
+});
+
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + Math.random() * 100;
+        this.size = 2 + Math.random() * 2;
+        this.speedY = 0.5 + Math.random() * 1.2;
+        this.speedX = (Math.random() - 0.5) * 0.4; 
+        this.opacity = 0.2 + Math.random() * 0.5;
+      }
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX + mouseX * 0.3;
+        this.opacity -= 0.002;
+
+        if (this.opacity <= 0 || this.y < -this.size) {
+          this.reset();
+        }
+      }
+      draw() {
+        const hue = 300 + (mouseX / window.innerWidth) * 60;
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
+        gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, ${this.opacity})`);
+        gradient.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.8)`;
+        ctx.shadowBlur = 15;
+      }
+    }
+
+    const particles = [];
+    const maxParticles = 80;
+    for (let i = 0; i < maxParticles; i++) {
+      particles.push(new Particle());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.update();
+        p.draw();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+
+  <script>
+        const quotes = [
+      { en: "Code is like humor. When you have to explain it, it’s bad.", author: "Cory House" },
+      { en: "Fix the cause, not the symptom.", author: "Steve Maguire" },
+      { en: "Optimism is an occupational hazard of programming.", author: "Kent Beck" },
+      { en: "Programming isn’t about what you know; it’s about what you can figure out.", author: "Chris Pine" },
+      { en: "Simplicity is the soul of efficiency.", author: "Austin Freeman" },
+      { en: "Sometimes it's better to leave something alone, to pause, and that's very true of programming.", author: "Joyce Wheeler" },
+      { en: "The most damaging phrase in the language is... 'It's always been done this way.'", author: "Grace Hopper" },
+      { en: "Testing leads to failure, and failure leads to understanding.", author: "Burt Rutan"},
+      { en : "In some ways, programming is like painting. You start with a blank canvas and certain basic raw materials. You use a combination of science, art, and craft to determine what to do with them.", author: "Andrew Hunt" }
+    ];
+    const quoteDiv = document.getElementById('quote');
+    const authorDiv = document.getElementById('author');
+    const newQuoteBtn = document.getElementById('newQuoteBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+
+    function fetchQuote() {
+      const randomIndex = Math.floor(Math.random() * quotes.length);
+      quoteDiv.textContent = `"${quotes[randomIndex].en}"`;
+      authorDiv.textContent = `— ${quotes[randomIndex].author}`;
+    }
+
+    modeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+    });
+
+    newQuoteBtn.addEventListener('click', fetchQuote);
+
+    shareBtn.addEventListener('click', () => {
+      const text = encodeURIComponent(quoteDiv.textContent + " " + authorDiv.textContent);
+      const url = `https://twitter.com/intent/tweet?text=${text}`;
+      window.open(url, '_blank', 'noopener');
+    });
+
+    fetchQuote();
+  </script>
+</body>
+</html>
